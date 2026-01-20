@@ -11,10 +11,10 @@ import os
 from unittest.mock import Mock, patch, MagicMock
 from bs4 import BeautifulSoup
 
-# 添加当前目录到路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 添加src目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
 
-from race_result_scraper import RaceResultScraper
+from hkjc_scrapers.race_result_scraper import RaceResultScraper
 
 
 class TestRaceResultScraper:
@@ -99,7 +99,7 @@ class TestRaceResultScraper:
         """测试URL解析功能"""
         url = "https://racing.hkjc.com/zh-hk/local/information/localresults?racedate=2026/01/18&Racecourse=ST&RaceNo=3"
         
-        with patch('requests.Session.get') as mock_get:
+        with patch('hkjc_scrapers.race_result_scraper.requests.Session.get') as mock_get:
             mock_response = Mock()
             mock_response.text = "<html><body>Test</body></html>"
             mock_response.encoding = 'utf-8'
@@ -198,7 +198,7 @@ class TestRaceResultScraper:
     
     def test_error_handling_invalid_url(self, scraper):
         """测试无效URL的错误处理"""
-        with patch('requests.Session.get') as mock_get:
+        with patch('hkjc_scrapers.race_result_scraper.requests.Session.get') as mock_get:
             mock_get.side_effect = Exception("Connection error")
             
             result = scraper.scrape_race_result("invalid_url")
@@ -223,7 +223,7 @@ class TestRaceResultScraper:
         """测试返回结果的结构"""
         url = "https://racing.hkjc.com/zh-hk/local/information/localresults?racedate=2026/01/18&Racecourse=ST&RaceNo=3"
         
-        with patch('requests.Session.get') as mock_get:
+        with patch('hkjc_scrapers.race_result_scraper.requests.Session.get') as mock_get:
             mock_response = Mock()
             mock_response.text = "<html><body><table><tr><td>Test</td></tr></table></body></html>"
             mock_response.encoding = 'utf-8'

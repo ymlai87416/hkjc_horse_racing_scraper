@@ -374,7 +374,7 @@ class RaceResultScraper:
 
 def main():
     """主函数"""
-    scraper = HKJCScraper()
+    scraper = RaceResultScraper()
     
     # 测试URL
     url = "https://racing.hkjc.com/zh-hk/local/information/localresults?racedate=2026/01/18&Racecourse=ST&RaceNo=3"

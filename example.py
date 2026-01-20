@@ -5,7 +5,13 @@
 演示如何使用HKJCScraper提取比赛信息
 """
 
-from hkjc_scraper import HKJCScraper
+import sys
+import os
+
+# 添加src目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src'))
+
+from hkjc_scrapers import RaceResultScraper
 import json
 
 
@@ -59,7 +65,7 @@ def print_race_summary(result: dict):
 def main():
     """主函数"""
     # 创建爬虫实例
-    scraper = HKJCScraper()
+    scraper = RaceResultScraper()
     
     # 示例URL
     url = "https://racing.hkjc.com/zh-hk/local/information/localresults?racedate=2026/01/18&Racecourse=ST&RaceNo=3"

@@ -89,13 +89,23 @@ deactivate
 
 ## 使用方法
 
+### 安装包（可选）
+
+```bash
+# 开发模式安装
+pip install -e .
+
+# 或直接使用（无需安装）
+# 确保 src 目录在 Python 路径中
+```
+
 ### 基本使用
 
 ```python
-from hkjc_scraper import HKJCScraper
+from hkjc_scrapers import RaceResultScraper
 
 # 创建爬虫实例
-scraper = HKJCScraper()
+scraper = RaceResultScraper()
 
 # 爬取指定URL
 url = "https://racing.hkjc.com/zh-hk/local/information/localresults?racedate=2026/01/18&Racecourse=ST&RaceNo=3"
@@ -111,7 +121,26 @@ scraper.save_to_csv(result, 'race_horses.csv')
 ### 命令行使用
 
 ```bash
-python hkjc_scraper.py
+python example.py
+```
+
+### 项目结构
+
+```
+hkjc_horse_racing_scraper/
+├── src/
+│   └── hkjc_scrapers/          # 爬虫包
+│       ├── __init__.py
+│       ├── race_result_scraper.py      # 比赛结果爬虫
+│       ├── race_calendar_scraper.py    # 赛程表爬虫（待实现）
+│       └── horse_info_scraper.py        # 马匹信息爬虫（待实现）
+├── test/                        # 测试目录
+│   ├── __init__.py
+│   └── test_race_result_scraper.py
+├── example.py                   # 使用示例
+├── setup.py                     # 包安装配置
+├── pytest.ini                   # pytest 配置
+└── requirements.txt             # 依赖列表
 ```
 
 ## URL格式说明
