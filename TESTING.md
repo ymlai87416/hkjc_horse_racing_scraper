@@ -169,10 +169,12 @@ pytest test/ -v
 # 运行特定测试文件
 pytest test/test_race_result_scraper.py -v
 pytest test/test_race_schedule_scraper.py -v
+pytest test/test_horse_info_scraper.py -v
 
 # 运行特定测试类
 pytest test/test_race_result_scraper.py::TestRaceResultScraper -v
 pytest test/test_race_schedule_scraper.py::TestRaceScheduleScraper -v
+pytest test/test_horse_info_scraper.py::TestHorseInfoScraper -v
 
 # 运行特定测试方法
 pytest test/test_race_schedule_scraper.py::TestRaceScheduleScraper::test_extract_race_days -v
