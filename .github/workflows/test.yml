@@ -33,23 +33,20 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        cd scraper
         pip install -r requirements.txt
     
     - name: Run tests with pytest
       run: |
-        cd scraper
         pytest test_hkjc_scraper.py -v --tb=short
     
     - name: Generate coverage report
       run: |
-        cd scraper
         pytest test_hkjc_scraper.py --cov=hkjc_scraper --cov-report=term-missing --cov-report=xml
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
-        file: ./scraper/coverage.xml
+        file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
