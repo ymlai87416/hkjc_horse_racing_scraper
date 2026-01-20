@@ -14,16 +14,16 @@ from bs4 import BeautifulSoup
 # 添加当前目录到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from hkjc_scraper import HKJCScraper
+from race_result_scraper import RaceResultScraper
 
 
-class TestHKJCScraper:
+class TestRaceResultScraper:
     """HKJC爬虫测试类"""
     
     @pytest.fixture
     def scraper(self):
         """创建爬虫实例"""
-        return HKJCScraper()
+        return RaceResultScraper()
     
     @pytest.fixture
     def sample_html(self):

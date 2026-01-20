@@ -13,7 +13,7 @@ from typing import Dict, List, Optional
 from urllib.parse import urlparse, parse_qs
 
 
-class HKJCScraper:
+class RaceResultScraper:
     """香港赛马会爬虫类"""
     
     def __init__(self):

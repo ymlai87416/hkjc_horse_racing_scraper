@@ -2,26 +2,66 @@
 
 ## 运行测试
 
+### 环境准备
+
+**首次设置（推荐使用虚拟环境）：**
+
+**macOS/Linux:**
+```bash
+# 使用提供的脚本自动设置
+bash setup_venv.sh
+
+# 或手动创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+**Windows:**
+```bash
+# 使用提供的脚本自动设置
+setup_venv.bat
+
+# 或手动创建虚拟环境
+python -m venv venv
+venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+**如果虚拟环境已存在，只需激活：**
+
+**macOS/Linux:**
+```bash
+source venv/bin/activate
+```
+
+**Windows:**
+```bash
+venv\Scripts\activate
+```
+
 ### 本地运行
 
-1. 安装测试依赖：
+1. 确保已激活虚拟环境并安装测试依赖：
 ```bash
 pip install -r requirements.txt
 ```
 
 2. 运行所有测试：
 ```bash
-pytest test_hkjc_scraper.py -v
+pytest test_race_result_scraper.py -v
 ```
 
 3. 运行特定测试：
 ```bash
-pytest test_hkjc_scraper.py::TestHKJCScraper::test_scraper_initialization -v
+pytest test_race_result_scraper.py::TestRaceResultScraper::test_scraper_initialization -v
 ```
 
 4. 运行测试并生成覆盖率报告：
 ```bash
-pytest test_hkjc_scraper.py --cov=hkjc_scraper --cov-report=html
+pytest test_race_result_scraper.py --cov=race_result_scraper --cov-report=html
 ```
 
 ### CI/CD

@@ -37,11 +37,11 @@ jobs:
     
     - name: Run tests with pytest
       run: |
-        pytest test_hkjc_scraper.py -v --tb=short
+        pytest test_race_result_scraper.py -v --tb=short
     
     - name: Generate coverage report
       run: |
-        pytest test_hkjc_scraper.py --cov=hkjc_scraper --cov-report=term-missing --cov-report=xml
+        pytest test_race_result_scraper.py --cov=race_result_scraper --cov-report=term-missing --cov-report=xml
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

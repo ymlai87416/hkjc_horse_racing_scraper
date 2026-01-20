@@ -27,7 +27,49 @@
 5. **血统信息**
    - 胜出马匹的父系和母系信息
 
-## 安装依赖
+## 环境设置
+
+### 创建虚拟环境（推荐）
+
+**macOS/Linux:**
+```bash
+# 使用提供的脚本自动设置
+bash setup_venv.sh
+
+# 或手动创建
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+**Windows:**
+```bash
+# 使用提供的脚本自动设置
+setup_venv.bat
+
+# 或手动创建
+python -m venv venv
+venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 激活虚拟环境
+
+**macOS/Linux:**
+```bash
+source venv/bin/activate
+```
+
+**Windows:**
+```bash
+venv\Scripts\activate
+```
+
+### 安装依赖
+
+如果已经激活虚拟环境，直接运行：
 
 ```bash
 pip install -r requirements.txt
@@ -36,7 +78,13 @@ pip install -r requirements.txt
 或者手动安装：
 
 ```bash
-pip install requests beautifulsoup4 lxml
+pip install requests beautifulsoup4 lxml pytest pytest-cov
+```
+
+### 退出虚拟环境
+
+```bash
+deactivate
 ```
 
 ## 使用方法
