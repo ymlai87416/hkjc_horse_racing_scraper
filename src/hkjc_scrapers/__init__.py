@@ -7,19 +7,17 @@ HKJC Scrapers Package
 包含多个爬虫模块：
 - race_result_scraper: 比赛结果爬虫
 - race_schedule_scraper: 赛程表爬虫
-- horse_info_scraper: 马匹信息爬虫（待实现）
+- horse_info_scraper: 马匹信息爬虫
 """
 
 from .race_result_scraper import RaceResultScraper
 from .race_schedule_scraper import RaceScheduleScraper
-
-# 未来可以添加更多 scraper：
-# from .horse_info_scraper import HorseInfoScraper
+from .horse_info_scraper import HorseInfoScraper
 
 __all__ = [
     'RaceResultScraper',
     'RaceScheduleScraper',
-    # 'HorseInfoScraper',     # 待实现
+    'HorseInfoScraper',
 ]
 
 __version__ = '0.1.0'
