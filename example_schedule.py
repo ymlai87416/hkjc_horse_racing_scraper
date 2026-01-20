@@ -98,7 +98,7 @@ def main():
     scraper = RaceScheduleScraper()
     
     # 默认URL
-    url = "https://racing.hkjc.com/zh-hk/local/information/fixture?b_cid=SPLDSPA_hkjc-home_MegaMenu"
+    url = "https://racing.hkjc.com/zh-hk/local/information/fixture?calyear=2026&calmonth=01"
     
     print(f"正在爬取赛程表: {url}")
     print("请稍候...")

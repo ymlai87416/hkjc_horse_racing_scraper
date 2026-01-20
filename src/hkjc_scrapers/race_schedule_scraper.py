@@ -186,6 +186,32 @@ class RaceScheduleScraper:
         tables = soup.find_all('table')
         
         for table in tables:
+            # 首先从<thead>中提取月份和年份
+            current_month = None
+            current_year = None
+            
+            thead = table.find('thead')
+            if thead:
+                thead_text = thead.get_text(strip=True)
+                # 查找格式如"二0二六年一月"的字符串
+                # 匹配模式：二0二六年一月、二零二六年一月、2026年一月等
+                date_match = re.search(r'(二[0-9一二三四五六七八九十零]+年|(\d{4})年)\s*([一二三四五六七八九十]+月|九月|十月|十一月|十二月|一月|二月|三月|四月|五月|六月|七月)', thead_text)
+                if date_match:
+                    # 提取年份（优先使用group(1)，如果没有则使用group(2)）
+                    year_str = date_match.group(1) if date_match.group(1) else date_match.group(2)
+                    if year_str:
+                        year_num_match = re.search(r'(\d{4})', year_str)
+                        if year_num_match:
+                            current_year = year_num_match.group(1)
+                        else:
+                            # 处理中文年份（如"二0二六年"、"二零二六年"）
+                            chinese_year = self._convert_chinese_year(year_str)
+                            if chinese_year:
+                                current_year = chinese_year
+                    
+                    # 提取月份
+                    current_month = date_match.group(3)
+            
             rows = table.find_all('tr')
             
             # 查找表头，确定列的位置
@@ -205,51 +231,316 @@ class RaceScheduleScraper:
             # 提取数据行
             data_rows = rows[rows.index(header_row) + 1:] if header_row else rows
             
-            current_month = None
-            current_year = None
+            # 如果从thead中没有找到月份和年份，尝试从数据行中提取（作为后备方案）
+            if not current_month or not current_year:
+                for row in data_rows:
+                    cells = row.find_all(['td', 'th'])
+                    
+                    # 检查是否是月份/年份行
+                    row_text = row.get_text(strip=True)
+                    year_match = re.search(r'二[0-9一二三四五六七八九十]+年|(\d{4})年', row_text)
+                    if year_match:
+                        year_str = year_match.group(0)
+                        # 提取年份数字
+                        year_num_match = re.search(r'(\d{4})', year_str)
+                        if year_num_match:
+                            current_year = year_num_match.group(1)
+                        else:
+                            # 处理中文年份
+                            chinese_year = self._convert_chinese_year(year_str)
+                            if chinese_year:
+                                current_year = chinese_year
+                    
+                    month_match = re.search(r'([一二三四五六七八九十]+月|九月|十月|十一月|十二月|一月|二月|三月|四月|五月|六月|七月)', row_text)
+                    if month_match:
+                        current_month = month_match.group(1)
+                        break
             
+            # 处理日期单元格
             for row in data_rows:
                 cells = row.find_all(['td', 'th'])
                 
-                # 检查是否是月份/年份行
+                # 跳过月份/年份行
                 row_text = row.get_text(strip=True)
-                year_match = re.search(r'二[0-9一二三四五六七八九十]+年|(\d{4})年', row_text)
-                if year_match:
-                    year_str = year_match.group(0)
-                    # 提取年份数字
-                    year_num_match = re.search(r'(\d{4})', year_str)
-                    if year_num_match:
-                        current_year = year_num_match.group(1)
-                    else:
-                        # 处理中文年份
-                        chinese_year = self._convert_chinese_year(year_str)
-                        if chinese_year:
-                            current_year = chinese_year
-                
-                month_match = re.search(r'([一二三四五六七八九十]+月|九月|十月|十一月|十二月|一月|二月|三月|四月|五月|六月|七月)', row_text)
-                if month_match:
-                    current_month = month_match.group(1)
+                if re.search(r'([一二三四五六七八九十]+年|(\d{4})年)\s*([一二三四五六七八九十]+月|九月|十月|十一月|十二月|一月|二月|三月|四月|五月|六月|七月)', row_text):
                     continue
                 
-                # 处理日期单元格
                 for i, cell in enumerate(cells):
-                    cell_text = cell.get_text(strip=True)
+                    # 获取单元格的class属性
+                    cell_classes = cell.get('class', [])
+                    if isinstance(cell_classes, str):
+                        cell_classes = [cell_classes]
                     
-                    # 从单元格文本中提取日期数字（可能包含其他字符如"C"、"P"等）
-                    day_match = re.search(r'^(\d{1,2})', cell_text)
-                    if day_match:
-                        day = int(day_match.group(1))
-                        if 1 <= day <= 31:
-                            # 提取该单元格中的所有信息
-                            race_day_info = self._parse_race_day_cell(cell, day, current_month, current_year)
-                            
-                            if race_day_info:
-                                race_days.append(race_day_info)
+                    # 检查是否不在当前月份（class包含color_H）
+                    if 'color_H' in cell_classes:
+                        continue  # 跳过不在当前月份的日期
+                    
+                    # 检查是否是赛马日期（只有calendar class的才是赛马日期）
+                    has_calendar_class = 'calendar' in cell_classes
+                    has_only_font_wb = 'font_wb' in cell_classes and not has_calendar_class
+                    
+                    # 如果只有font_wb但没有calendar，说明不是赛马日期，跳过
+                    if has_only_font_wb:
+                        continue
+                    
+                    # 如果没有calendar class，跳过（不是赛马日期）
+                    if not has_calendar_class:
+                        continue
+                    
+                    # 优先从span标签中提取日期
+                    day = None
+                    span_tags = cell.find_all('span')
+                    for span in span_tags:
+                        span_text = span.get_text(strip=True)
+                        day_match = re.search(r'(\d{1,2})', span_text)
+                        if day_match:
+                            day = int(day_match.group(1))
+                            if 1 <= day <= 31:
+                                break
+                    
+                    # 如果span标签中没有找到日期，则从单元格文本中提取
+                    if day is None:
+                        cell_text = cell.get_text(strip=True)
+                        day_match = re.search(r'(\d{1,2})', cell_text)
+                        if day_match:
+                            day = int(day_match.group(1))
+                    
+                    if day and 1 <= day <= 31:
+                        # 是赛马日期，提取该单元格中的所有信息
+                        race_day_info = self._parse_race_day_cell(cell, day, current_month, current_year)
+                        
+                        if race_day_info:
+                            race_days.append(race_day_info)
         
         return race_days
     
     def _parse_race_day_cell(self, cell, day: int, month: Optional[str], year: Optional[str]) -> Optional[Dict]:
         """解析单个日期单元格，提取赛马日信息"""
+        race_day = {
+            'day': day,
+            'month': month,
+            'year': year,
+            'date': None,
+            'date_info': None,  # 第一个<p>的信息
+            'venues': [],
+            'race_types': [],
+            'track_types': [],  # 跑道类型（从第一个<p>提取）
+            'races': []  # 每场比赛的详细信息
+        }
+        
+        # 构建日期字符串
+        if year and month:
+            try:
+                month_num = self._convert_chinese_month(month)
+                if month_num:
+                    date_str = f"{year}-{month_num:02d}-{day:02d}"
+                    race_day['date'] = date_str
+            except:
+                pass
+        
+        # 查找所有<p>标签
+        p_tags = cell.find_all('p')
+        if not p_tags:
+            # 如果没有<p>标签，使用旧的解析方法作为后备
+            return self._parse_race_day_cell_legacy(cell, day, month, year)
+        
+        # 第一个<p>是日期和该日期的相关信息
+        if len(p_tags) > 0:
+            first_p = p_tags[0]
+            race_day['date_info'] = self._parse_date_info_p(first_p)
+            
+            # 从第一个<p>中提取场地、赛马类型等信息
+            self._extract_day_level_info(first_p, race_day)
+        
+        # 从第二个<p>开始，每个<p>代表一场比赛
+        for i, p_tag in enumerate(p_tags[1:], start=2):
+            race_info = self._parse_race_p(p_tag, i - 1)
+            if race_info:
+                race_day['races'].append(race_info)
+        
+        # 只有在有赛马相关信息时才返回
+        if race_day['races'] or race_day['venues'] or race_day['race_types']:
+            return race_day
+        
+        return None
+    
+    def _parse_date_info_p(self, p_tag) -> Dict:
+        """解析第一个<p>标签，提取日期相关信息"""
+        info = {
+            'text': p_tag.get_text(strip=True),
+            'images': []
+        }
+        
+        # 提取图片信息
+        images = p_tag.find_all('img')
+        for img in images:
+            img_info = {
+                'src': img.get('src', ''),
+                'alt': img.get('alt', ''),
+                'title': img.get('title', '')
+            }
+            info['images'].append(img_info)
+        
+        return info
+    
+    def _extract_day_level_info(self, p_tag, race_day: Dict):
+        """从第一个<p>标签中提取日期级别的信息（场地、赛马类型、跑道类型等）"""
+        images = p_tag.find_all('img')
+        for img in images:
+            src = img.get('src', '').lower()
+            alt = img.get('alt', '')
+            filename = src.split('/')[-1] if '/' in src else src  # 提取文件名
+            
+            # 解析场地图标
+            # st.gif = 沙田, hv.gif = 跑馬地
+            if filename.endswith('hv.gif') or 'hv.gif' in src or 'hv-ch' in src or '跑馬地' in alt or '跑马地' in alt:
+                if '跑马地' not in race_day['venues']:
+                    race_day['venues'].append('跑马地')
+            elif filename.endswith('st.gif') or 'st.gif' in src or 'st-ch' in src or '沙田' in alt:
+                if '沙田' not in race_day['venues']:
+                    race_day['venues'].append('沙田')
+            
+            # 解析跑道类型图标
+            # mixed.gif = 混合賽路，turf.gif = 草地，awt.gif = 全天候
+            if filename.endswith('mixed.gif') or 'mixed.gif' in src or ('mixed' in src and 'gif' in src) or '混合' in alt or '混合賽路' in alt:
+                if '混合賽路' not in race_day['track_types']:
+                    race_day['track_types'].append('混合賽路')
+            elif filename.endswith('turf.gif') or 'turf.gif' in src or ('turf' in src and 'gif' in src) or '草地' in alt:
+                if '草地' not in race_day['track_types']:
+                    race_day['track_types'].append('草地')
+            elif filename.endswith('awt.gif') or 'awt.gif' in src or ('awt' in src and 'gif' in src) or '全天候' in alt:
+                if '全天候' not in race_day['track_types']:
+                    race_day['track_types'].append('全天候')
+            
+            # 解析赛马类型图标
+            if 'day' in src or '日賽' in alt or '日赛' in alt:
+                if '日赛' not in race_day['race_types']:
+                    race_day['race_types'].append('日赛')
+            elif 'dusk' in src or '黄昏賽' in alt or '黄昏赛' in alt:
+                if '黄昏赛' not in race_day['race_types']:
+                    race_day['race_types'].append('黄昏赛')
+            elif 'night' in src or '夜賽' in alt or '夜赛' in alt:
+                if '夜赛' not in race_day['race_types']:
+                    race_day['race_types'].append('夜赛')
+    
+    def _parse_race_p(self, p_tag, race_number: int) -> Optional[Dict]:
+        """解析单个比赛<p>标签，提取比赛详细信息"""
+        race_info = {
+            'race_number': race_number,
+            'class': None,  # 第一班、第二班等
+            'grade': None,  # 一级赛、二级赛等
+            'track_type': None,  # 草地、全天候跑道等
+            'distance': None,  # 1200(1) 格式
+            'distance_meters': None,  # 1200
+            'distance_race_number': None,  # (1) 中的数字
+            'has_cup_mark': False,  # 是否有-C标记
+            'score_range': None,  # 85-60 格式
+            'score_min': None,  # 60
+            'score_max': None,  # 85
+            'images': [],
+            'text': p_tag.get_text(strip=True)
+        }
+        
+        # 提取所有图片
+        images = p_tag.find_all('img')
+        for img in images:
+            src = img.get('src', '').lower()
+            alt = img.get('alt', '')
+            title = img.get('title', '')
+            
+            img_info = {
+                'src': src,
+                'alt': alt,
+                'title': title
+            }
+            race_info['images'].append(img_info)
+            
+            # 解析班次GIF（第一班、第二班等）
+            # 优先从alt/title中提取
+            if '第一班' in alt or '第一班' in title:
+                race_info['class'] = '第一班'
+            elif '第二班' in alt or '第二班' in title:
+                race_info['class'] = '第二班'
+            elif '第三班' in alt or '第三班' in title:
+                race_info['class'] = '第三班'
+            elif '第四班' in alt or '第四班' in title:
+                race_info['class'] = '第四班'
+            elif '第五班' in alt or '第五班' in title:
+                race_info['class'] = '第五班'
+            elif 'class' in src:
+                # 从文件名中提取班次数字（如class1.gif, class_1.gif等）
+                class_match = re.search(r'class[_-]?(\d+)', src)
+                if class_match:
+                    class_num = int(class_match.group(1))
+                    chinese_class = self._number_to_chinese_class(class_num)
+                    race_info['class'] = chinese_class
+            
+            # 解析级别GIF（一级赛、二级赛等）
+            if 'g1' in src or 'class_g1' in src or '一級賽' in alt or '一级赛' in alt:
+                race_info['grade'] = '一级赛'
+            elif 'g2' in src or 'class_g2' in src or '二級賽' in alt or '二级赛' in alt:
+                race_info['grade'] = '二级赛'
+            elif 'g3' in src or 'class_g3' in src or '三級賽' in alt or '三级赛' in alt:
+                race_info['grade'] = '三级赛'
+            elif '4yo' in src or 'class_4yo' in src or '四歲' in alt or '四岁' in alt:
+                race_info['grade'] = '四岁'
+            
+            # 解析全天候跑道GIF（awt.gif）
+            if 'awt' in src or '全天候' in alt:
+                race_info['track_type'] = '全天候跑道'
+            elif 'turf' in src or '草地' in alt:
+                if not race_info['track_type']:  # 如果还没有设置
+                    race_info['track_type'] = '草地'
+            elif 'mixed' in src or '混合' in alt:
+                if not race_info['track_type']:
+                    race_info['track_type'] = '混合赛道'
+        
+        # 提取文本内容
+        text = p_tag.get_text(strip=True)
+        
+        # 提取赛道长度和比赛编号：1200(1) 或 1200(1)-C
+        distance_pattern = r'(\d+)\s*\((\d+)\)(?:\s*-C)?'
+        distance_match = re.search(distance_pattern, text)
+        if distance_match:
+            race_info['distance_meters'] = int(distance_match.group(1))
+            race_info['distance_race_number'] = int(distance_match.group(2))
+            race_info['distance'] = f"{race_info['distance_meters']}({race_info['distance_race_number']})"
+            
+            # 检查是否有-C标记
+            if '-C' in text:
+                race_info['has_cup_mark'] = True
+                race_info['distance'] += '-C'
+        
+        # 提取分数范围：85-60
+        score_pattern = r'(\d+)\s*-\s*(\d+)'
+        score_match = re.search(score_pattern, text)
+        if score_match:
+            score_max = int(score_match.group(1))
+            score_min = int(score_match.group(2))
+            race_info['score_max'] = score_max
+            race_info['score_min'] = score_min
+            race_info['score_range'] = f"{score_max}-{score_min}"
+        
+        # 如果没有任何有效信息，返回None
+        if not any([race_info['class'], race_info['grade'], race_info['track_type'], 
+                   race_info['distance'], race_info['score_range']]):
+            return None
+        
+        return race_info
+    
+    def _number_to_chinese_class(self, num: int) -> str:
+        """将数字转换为中文班次"""
+        chinese_numbers = {
+            1: '第一班',
+            2: '第二班',
+            3: '第三班',
+            4: '第四班',
+            5: '第五班'
+        }
+        return chinese_numbers.get(num, f'第{num}班')
+    
+    def _parse_race_day_cell_legacy(self, cell, day: int, month: Optional[str], year: Optional[str]) -> Optional[Dict]:
+        """旧版解析方法，作为后备方案"""
         race_day = {
             'day': day,
             'month': month,
@@ -261,7 +552,8 @@ class RaceScheduleScraper:
             'race_classes': [],
             'special_marks': [],
             'prize_money': [],
-            'notes': []
+            'notes': [],
+            'races': []
         }
         
         # 构建日期字符串
@@ -438,29 +730,68 @@ class RaceScheduleScraper:
             print("没有赛程数据可保存")
             return
         
-        # 确定所有可能的字段
-        fieldnames = ['date', 'day', 'month', 'year', 'venues', 'race_types', 
-                     'track_types', 'race_classes', 'special_marks', 'prize_money', 'notes']
+        # 确定所有可能的字段（支持新的races结构）
+        fieldnames = ['date', 'day', 'month', 'year', 'venues', 'race_types', 'track_types',
+                     'race_number', 'class', 'grade', 'track_type', 
+                     'distance', 'distance_meters', 'distance_race_number', 'has_cup_mark',
+                     'score_range', 'score_min', 'score_max', 'race_text']
         
         with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             
             for day in race_days:
-                row = {
-                    'date': day.get('date', ''),
-                    'day': day.get('day', ''),
-                    'month': day.get('month', ''),
-                    'year': day.get('year', ''),
-                    'venues': ', '.join(day.get('venues', [])),
-                    'race_types': ', '.join(day.get('race_types', [])),
-                    'track_types': ', '.join(day.get('track_types', [])),
-                    'race_classes': ', '.join(day.get('race_classes', [])),
-                    'special_marks': ', '.join(day.get('special_marks', [])),
-                    'prize_money': ', '.join(day.get('prize_money', [])),
-                    'notes': ', '.join(day.get('notes', []))
-                }
-                writer.writerow(row)
+                races = day.get('races', [])
+                
+                # 如果有详细的比赛信息，每场比赛一行
+                if races:
+                    for race in races:
+                        row = {
+                            'date': day.get('date', ''),
+                            'day': day.get('day', ''),
+                            'month': day.get('month', ''),
+                            'year': day.get('year', ''),
+                            'venues': ', '.join(day.get('venues', [])),
+                            'race_types': ', '.join(day.get('race_types', [])),
+                            'track_types': ', '.join(day.get('track_types', [])),
+                            'race_number': race.get('race_number', ''),
+                            'class': race.get('class', ''),
+                            'grade': race.get('grade', ''),
+                            'track_type': race.get('track_type', ''),
+                            'distance': race.get('distance', ''),
+                            'distance_meters': race.get('distance_meters', ''),
+                            'distance_race_number': race.get('distance_race_number', ''),
+                            'has_cup_mark': '是' if race.get('has_cup_mark') else '否',
+                            'score_range': race.get('score_range', ''),
+                            'score_min': race.get('score_min', ''),
+                            'score_max': race.get('score_max', ''),
+                            'race_text': race.get('text', '')
+                        }
+                        writer.writerow(row)
+                else:
+                    # 兼容旧格式（没有详细比赛信息）
+                    row = {
+                        'date': day.get('date', ''),
+                        'day': day.get('day', ''),
+                        'month': day.get('month', ''),
+                        'year': day.get('year', ''),
+                        'venues': ', '.join(day.get('venues', [])),
+                        'race_types': ', '.join(day.get('race_types', [])),
+                        'track_types': ', '.join(day.get('track_types', [])),
+                        'race_number': '',
+                        'class': ', '.join(day.get('race_classes', [])),
+                        'grade': '',
+                        'track_type': ', '.join(day.get('track_types', [])),
+                        'distance': '',
+                        'distance_meters': '',
+                        'distance_race_number': '',
+                        'has_cup_mark': '',
+                        'score_range': '',
+                        'score_min': '',
+                        'score_max': '',
+                        'race_text': ''
+                    }
+                    writer.writerow(row)
         
         print(f"赛程数据已保存到: {filename}")
 
