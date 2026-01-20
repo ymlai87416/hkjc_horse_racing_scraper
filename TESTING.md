@@ -51,17 +51,48 @@ pip install -r requirements.txt
 
 2. 运行所有测试：
 ```bash
-pytest test_race_result_scraper.py -v
+# 运行所有测试文件
+pytest test/ -v
+
+# 或使用相对路径
+pytest test/test_race_result_scraper.py test/test_race_schedule_scraper.py -v
 ```
 
-3. 运行特定测试：
+3. 运行特定爬虫的测试：
 ```bash
-pytest test_race_result_scraper.py::TestRaceResultScraper::test_scraper_initialization -v
+# 运行比赛结果爬虫测试
+pytest test/test_race_result_scraper.py -v
+
+# 运行赛程表爬虫测试
+pytest test/test_race_schedule_scraper.py -v
 ```
 
-4. 运行测试并生成覆盖率报告：
+4. 运行特定测试方法：
 ```bash
-pytest test_race_result_scraper.py --cov=race_result_scraper --cov-report=html
+# 比赛结果爬虫测试
+pytest test/test_race_result_scraper.py::TestRaceResultScraper::test_scraper_initialization -v
+
+# 赛程表爬虫测试
+pytest test/test_race_schedule_scraper.py::TestRaceScheduleScraper::test_scraper_initialization -v
+```
+
+5. 运行测试并生成覆盖率报告：
+```bash
+# 单个爬虫的覆盖率
+pytest test/test_race_result_scraper.py --cov=src/hkjc_scrapers/race_result_scraper --cov-report=html
+pytest test/test_race_schedule_scraper.py --cov=src/hkjc_scrapers/race_schedule_scraper --cov-report=html
+
+# 整个包的覆盖率
+pytest test/ --cov=src/hkjc_scrapers --cov-report=html
+```
+
+6. 运行测试并显示详细输出：
+```bash
+# 显示打印输出
+pytest test/ -v -s
+
+# 显示更详细的输出
+pytest test/ -vv
 ```
 
 ### CI/CD
@@ -74,6 +105,8 @@ GitHub Actions 会在多个Python版本（3.9, 3.10, 3.11, 3.12）上运行测�
 
 ## 测试覆盖
 
+### 比赛结果爬虫 (RaceResultScraper)
+
 当前测试覆盖以下功能：
 
 - ✅ 爬虫初始化
@@ -82,6 +115,26 @@ GitHub Actions 会在多个Python版本（3.9, 3.10, 3.11, 3.12）上运行测�
 - ✅ 马匹信息提取
 - ✅ 事件报告提取
 - ✅ 血统信息提取
+- ✅ JSON保存功能
+- ✅ CSV保存功能
+- ✅ 错误处理
+- ✅ 返回结果结构验证
+
+### 赛程表爬虫 (RaceScheduleScraper)
+
+当前测试覆盖以下功能：
+
+- ✅ 爬虫初始化
+- ✅ URL解析（包括默认URL）
+- ✅ 月份提取
+- ✅ 图例提取（场地、赛马类型、赛道类型、赛事级别、特殊标记）
+- ✅ 通知提取
+- ✅ 赛马日提取
+- ✅ 日期单元格解析
+- ✅ 中文月份转换
+- ✅ 中文年份转换
+- ✅ 按月份筛选赛马日
+- ✅ 按场地筛选赛马日
 - ✅ JSON保存功能
 - ✅ CSV保存功能
 - ✅ 错误处理
@@ -103,5 +156,35 @@ def test_new_feature(self, scraper):
     """测试新功能"""
     # 测试代码
     assert result is not None
+```
+
+## 快速参考
+
+### 常用测试命令
+
+```bash
+# 运行所有测试
+pytest test/ -v
+
+# 运行特定测试文件
+pytest test/test_race_result_scraper.py -v
+pytest test/test_race_schedule_scraper.py -v
+
+# 运行特定测试类
+pytest test/test_race_result_scraper.py::TestRaceResultScraper -v
+pytest test/test_race_schedule_scraper.py::TestRaceScheduleScraper -v
+
+# 运行特定测试方法
+pytest test/test_race_schedule_scraper.py::TestRaceScheduleScraper::test_extract_race_days -v
+
+# 只运行失败的测试
+pytest test/ --lf
+
+# 运行上次失败的测试并显示详细输出
+pytest test/ --lf -vv
+
+# 生成覆盖率报告（HTML格式）
+pytest test/ --cov=src/hkjc_scrapers --cov-report=html
+# 报告会生成在 htmlcov/ 目录中
 ```
 

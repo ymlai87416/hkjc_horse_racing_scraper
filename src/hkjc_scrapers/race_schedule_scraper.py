@@ -235,15 +235,16 @@ class RaceScheduleScraper:
                 for i, cell in enumerate(cells):
                     cell_text = cell.get_text(strip=True)
                     
-                    # 检查是否是日期数字
-                    if cell_text.isdigit() and 1 <= int(cell_text) <= 31:
-                        day = int(cell_text)
-                        
-                        # 提取该单元格中的所有信息
-                        race_day_info = self._parse_race_day_cell(cell, day, current_month, current_year)
-                        
-                        if race_day_info:
-                            race_days.append(race_day_info)
+                    # 从单元格文本中提取日期数字（可能包含其他字符如"C"、"P"等）
+                    day_match = re.search(r'^(\d{1,2})', cell_text)
+                    if day_match:
+                        day = int(day_match.group(1))
+                        if 1 <= day <= 31:
+                            # 提取该单元格中的所有信息
+                            race_day_info = self._parse_race_day_cell(cell, day, current_month, current_year)
+                            
+                            if race_day_info:
+                                race_days.append(race_day_info)
         
         return race_days
     
@@ -376,9 +377,9 @@ class RaceScheduleScraper:
             return num_match.group(1)
         
         # 处理中文数字年份（简化处理）
-        # 例如：二0二六年 -> 2026
+        # 例如：二0二六年 -> 2026, 二零二六年 -> 2026
         chinese_digits = {
-            '0': '0', '一': '1', '二': '2', '三': '3', '四': '4',
+            '0': '0', '零': '0', '一': '1', '二': '2', '三': '3', '四': '4',
             '五': '5', '六': '6', '七': '7', '八': '8', '九': '9'
         }
         
