@@ -34,47 +34,61 @@ class TestRaceScheduleScraper:
         <head><title>赛程表</title></head>
         <body>
             <table>
-                <tr>
-                    <th>日</th>
-                    <th>一</th>
-                    <th>二</th>
-                    <th>三</th>
-                    <th>四</th>
-                    <th>五</th>
-                    <th>六</th>
-                </tr>
-                <tr>
-                    <td colspan="7">二0二六年一月</td>
-                </tr>
-                <tr>
-                    <td>1</td>
-                    <td>2</td>
-                    <td>
-                        3
-                        <img src="/general/-/media/Sites/JCRW/Remarks/Fixture/st-ch" alt="沙田">
-                        <img src="/general/-/media/Sites/JCRW/Remarks/Fixture/day" alt="日賽">
-                        <img src="/general/-/media/Sites/JCRW/Remarks/Fixture/turf" alt="草地">
-                    </td>
-                    <td>4</td>
-                    <td>5</td>
-                    <td>6</td>
-                    <td>7</td>
-                </tr>
-                <tr>
-                    <td>8</td>
-                    <td>9</td>
-                    <td>10</td>
-                    <td>
-                        11
-                        <img src="/general/-/media/Sites/JCRW/Remarks/Fixture/hv-ch" alt="跑馬地">
-                        <img src="/general/-/media/Sites/JCRW/Remarks/Fixture/night" alt="夜賽">
-                        <img src="/general/-/media/Sites/JCRW/Remarks/Fixture/class_g1" alt="一級賽">
-                        C
-                    </td>
-                    <td>12</td>
-                    <td>13</td>
-                    <td>14</td>
-                </tr>
+                <thead>
+                    <tr>
+                        <th colspan="7">二0二六年一月</th>
+                    </tr>
+                    <tr>
+                        <th>日</th>
+                        <th>一</th>
+                        <th>二</th>
+                        <th>三</th>
+                        <th>四</th>
+                        <th>五</th>
+                        <th>六</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="font_wb">1</td>
+                        <td class="font_wb">2</td>
+                        <td class="calendar">
+                            <p>
+                                <span class="f_fl f_fs14">3</span>
+                                <img src="/st.gif" alt="沙田">
+                                <img src="/day.gif" alt="日賽">
+                                <img src="/turf.gif" alt="草地">
+                            </p>
+                            <p>
+                                <img src="/class2.gif" alt="第二班">
+                                1200(1) 85-60
+                            </p>
+                        </td>
+                        <td class="font_wb">4</td>
+                        <td class="font_wb">5</td>
+                        <td class="font_wb">6</td>
+                        <td class="font_wb">7</td>
+                    </tr>
+                    <tr>
+                        <td class="font_wb">8</td>
+                        <td class="font_wb">9</td>
+                        <td class="font_wb">10</td>
+                        <td class="calendar">
+                            <p>
+                                <span class="f_fl f_fs14">11</span>
+                                <img src="/hv.gif" alt="跑馬地">
+                                <img src="/night.gif" alt="夜賽">
+                            </p>
+                            <p>
+                                <img src="/class_g1.gif" alt="一級賽">
+                                1400(1)-C 100-80
+                            </p>
+                        </td>
+                        <td class="font_wb">12</td>
+                        <td class="font_wb">13</td>
+                        <td class="font_wb">14</td>
+                    </tr>
+                </tbody>
             </table>
             <div>
                 <p>原定於2025年9月24日（星期三）在跑馬地馬場舉行的賽事將予取消。</p>
@@ -142,23 +156,33 @@ class TestRaceScheduleScraper:
         assert isinstance(race_days, list)
         # 示例HTML中应该至少有两个赛马日（3号和11号）
         assert len(race_days) >= 2
+        # 检查新的数据结构
+        for race_day in race_days:
+            assert 'day' in race_day
+            assert 'races' in race_day
+            assert isinstance(race_day['races'], list)
+            assert 'venues' in race_day
+            assert 'race_types' in race_day
+            assert 'track_types' in race_day
+            # 验证从thead中提取的月份和年份
+            assert race_day.get('month') == '一月'
+            assert race_day.get('year') == '2026'
     
     def test_parse_race_day_cell(self, scraper, sample_html):
         """测试日期单元格解析"""
         soup = BeautifulSoup(sample_html, 'html.parser')
         
-        # 找到包含赛马信息的单元格
-        cell = soup.find('td', string=re.compile(r'3'))
+        # 找到包含calendar class的单元格
+        cell = soup.find('td', class_='calendar')
         if cell:
-            # 找到包含图片的父单元格
-            for td in soup.find_all('td'):
-                if td.find('img'):
-                    race_day = scraper._parse_race_day_cell(td, 3, '一月', '2026')
-                    if race_day:
-                        assert race_day['day'] == 3
-                        assert 'venues' in race_day
-                        assert 'race_types' in race_day
-                        break
+            race_day = scraper._parse_race_day_cell(cell, 3, '一月', '2026')
+            if race_day:
+                assert race_day['day'] == 3
+                assert 'venues' in race_day
+                assert 'race_types' in race_day
+                assert 'races' in race_day
+                assert isinstance(race_day['races'], list)
+                assert 'track_types' in race_day
     
     def test_convert_chinese_month(self, scraper):
         """测试中文月份转换"""
@@ -235,10 +259,22 @@ class TestRaceScheduleScraper:
                     'venues': ['沙田'],
                     'race_types': ['日赛'],
                     'track_types': ['草地'],
-                    'race_classes': [],
-                    'special_marks': [],
-                    'prize_money': [],
-                    'notes': []
+                    'races': [
+                        {
+                            'race_number': 1,
+                            'class': '第二班',
+                            'grade': None,
+                            'track_type': None,
+                            'distance': '1200(1)',
+                            'distance_meters': 1200,
+                            'distance_race_number': 1,
+                            'has_cup_mark': False,
+                            'score_range': '85-60',
+                            'score_min': 60,
+                            'score_max': 85,
+                            'text': '1200(1) 85-60'
+                        }
+                    ]
                 },
                 {
                     'date': '2026-01-11',
@@ -248,10 +284,22 @@ class TestRaceScheduleScraper:
                     'venues': ['跑马地'],
                     'race_types': ['夜赛'],
                     'track_types': ['草地'],
-                    'race_classes': ['一级赛'],
-                    'special_marks': ['C'],
-                    'prize_money': [],
-                    'notes': []
+                    'races': [
+                        {
+                            'race_number': 1,
+                            'class': None,
+                            'grade': '一级赛',
+                            'track_type': None,
+                            'distance': '1400(1)-C',
+                            'distance_meters': 1400,
+                            'distance_race_number': 1,
+                            'has_cup_mark': True,
+                            'score_range': '100-80',
+                            'score_min': 80,
+                            'score_max': 100,
+                            'text': '1400(1)-C 100-80'
+                        }
+                    ]
                 }
             ]
         }
@@ -268,7 +316,12 @@ class TestRaceScheduleScraper:
             rows = list(reader)
             assert len(rows) == 2
             assert rows[0]['day'] == '3'
+            assert rows[0]['venues'] == '沙田'
+            assert rows[0]['race_number'] == '1'
+            assert rows[0]['class'] == '第二班'
             assert rows[1]['venues'] == '跑马地'
+            assert rows[1]['grade'] == '一级赛'
+            assert rows[1]['has_cup_mark'] == '是'
     
     def test_save_to_csv_empty_data(self, scraper, tmp_path):
         """测试CSV保存空数据"""
