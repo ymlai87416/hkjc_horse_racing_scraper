@@ -27,3 +27,4 @@ updates:
     #   - dependency-name: "*"
     #     update-types: ["version-update:semver-major"]
 
+
